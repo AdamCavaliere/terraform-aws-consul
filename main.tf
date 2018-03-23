@@ -96,6 +96,8 @@ module "consul_servers" {
       key                 = "Environment"
       value               = "development"
       propagate_at_launch = true
+      Owner               = "Adam Cavaliere"
+      ttl                 = 24
     },
   ]
 }
@@ -120,34 +122,6 @@ data "template_file" "user_data_server" {
 # provides a convenient way to deploy an Auto Scaling Group with the necessary IAM and security group permissions for
 # Consul, but feel free to deploy those clients however you choose (e.g. a single EC2 Instance, a Docker cluster, etc).
 # ---------------------------------------------------------------------------------------------------------------------
-
-module "consul_clients" {
-  # When using these modules in your own templates, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:hashicorp/terraform-aws-consul.git//modules/consul-cluster?ref=v0.0.1"
-  source = "./modules/consul-cluster"
-
-  cluster_name  = "${var.cluster_name}-client"
-  cluster_size  = "${var.num_clients}"
-  instance_type = "t2.micro"
-  spot_price    = "${var.spot_price}"
-
-  cluster_tag_key   = "consul-clients"
-  cluster_tag_value = "${var.cluster_name}"
-
-  ami_id    = "${var.ami_id == "" ? data.aws_ami.consul.image_id : var.ami_id}"
-  user_data = "${data.template_file.user_data_client.rendered}"
-
-  vpc_id     = "${data.terraform_remote_state.networkbase.vpcid}"
-  subnet_ids = "${data.terraform_remote_state.networkbase.private_subnets}"
-
-  # To make testing easier, we allow Consul and SSH requests from any IP address here but in a production
-  # deployment, we strongly recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
-  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
-
-  allowed_inbound_cidr_blocks = ["0.0.0.0/0"]
-  ssh_key_name                = "${var.ssh_key_name}"
-}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # THE USER DATA SCRIPT THAT WILL RUN ON EACH CONSUL CLIENT EC2 INSTANCE WHEN IT'S BOOTING
