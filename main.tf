@@ -9,7 +9,7 @@ data "terraform_remote_state" "networkbase" {
   backend = "atlas"
 
   config {
-    name = "${var.organization}/${var.workspace}"
+    name = "azc/CompanyXYZ-baseNetwork"
   }
 }
 
