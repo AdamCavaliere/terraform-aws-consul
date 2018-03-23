@@ -5,6 +5,13 @@
 # nodes. Note that these templates assume that the AMI you provide via the ami_id input variable is built from
 # the examples/consul-ami/consul.json Packer template.
 # ---------------------------------------------------------------------------------------------------------------------
+data "terraform_remote_state" "networkbase" {
+  backend = "atlas"
+
+  config {
+    name = "${var.organization}/${var.workspace}"
+  }
+}
 
 provider "aws" {
   region = "${var.aws_region}"
@@ -74,8 +81,8 @@ module "consul_servers" {
   ami_id    = "${var.ami_id == "" ? data.aws_ami.consul.image_id : var.ami_id}"
   user_data = "${data.template_file.user_data_server.rendered}"
 
-  vpc_id     = "${data.aws_vpc.default.id}"
-  subnet_ids = "${data.aws_subnet_ids.default.ids}"
+  vpc_id     = "${data.terraform_remote_state.networkbase.vpcid}"
+  subnet_ids = "${data.terraform_remote_state.networkbase.private_subnets}"
 
   # To make testing easier, we allow Consul and SSH requests from any IP address here but in a production
   # deployment, we strongly recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
@@ -154,19 +161,4 @@ data "template_file" "user_data_client" {
     cluster_tag_key   = "${var.cluster_tag_key}"
     cluster_tag_value = "${var.cluster_name}"
   }
-}
-
-# ---------------------------------------------------------------------------------------------------------------------
-# DEPLOY CONSUL IN THE DEFAULT VPC AND SUBNETS
-# Using the default VPC and subnets makes this example easy to run and test, but it means Consul is accessible from the
-# public Internet. For a production deployment, we strongly recommend deploying into a custom VPC with private subnets.
-# ---------------------------------------------------------------------------------------------------------------------
-
-data "aws_vpc" "default" {
-  default = "${var.vpc_id == "" ? true : false}"
-  id      = "${var.vpc_id}"
-}
-
-data "aws_subnet_ids" "default" {
-  vpc_id = "${data.aws_vpc.default.id}"
 }
